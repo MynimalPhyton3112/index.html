@@ -1,0 +1,373 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Growth Capital Income Model</title>
+<style>
+  :root { --bg:#0f172a; --panel:#111827; --muted:#94a3b8; --text:#e5e7eb; --accent:#22c55e; --accent2:#60a5fa; --danger:#ef4444; }
+  * { box-sizing: border-box; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial;}
+  body { margin:0; background:linear-gradient(135deg,#0b1020,#0f172a); color:var(--text); padding:24px;}
+  h1,h2 { margin: 0 0 8px 0; }
+  h1 { font-size: 28px; }
+  h2 { font-size: 20px; margin-top: 12px; }
+  .grid { display:grid; gap:16px; }
+  .cols-2 { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .cols-3 { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  .panel { background: rgba(17,24,39,0.8); border:1px solid rgba(148,163,184,0.15); border-radius:16px; padding:16px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+  label { display:block; font-size:12px; color:var(--muted); margin-bottom:6px; }
+  input[type="number"] { width:100%; padding:10px 12px; border-radius:12px; border:1px solid rgba(148,163,184,0.2); background:#0b1220; color:var(--text); }
+  .row { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+  .btn { padding:10px 14px; border-radius:12px; border:1px solid rgba(148,163,184,0.2); background:#0b1220; color:var(--text); cursor:pointer; }
+  .btn.primary { background: linear-gradient(135deg, #16a34a, #22c55e); border-color:#22c55e; color:#052e16; font-weight: 700; }
+  .btn.secondary { background: linear-gradient(135deg, #2563eb, #60a5fa); border-color:#60a5fa; color:#0b1020; font-weight: 700; }
+  .btn:active { transform: translateY(1px); }
+  table { width:100%; border-collapse: collapse; }
+  th, td { padding:10px 8px; border-bottom:1px solid rgba(148,163,184,0.12); text-align:right; font-variant-numeric: tabular-nums; }
+  th { text-align:left; color:#cbd5e1; font-size:12px; }
+  .kpi { display:flex; gap:16px; flex-wrap:wrap; }
+  .k { flex:1 1 180px; padding:12px; border-radius:12px; background: rgba(2,6,23,0.5); border:1px solid rgba(148,163,184,0.15); }
+  .k .v { font-size:18px; font-weight:800; }
+  .tag { font-size:11px; color:#0b1020; background:#a3e635; padding:4px 8px; border-radius:999px; font-weight:800; }
+  .warn { color: var(--danger); font-weight:700; }
+  .ok { color: var(--accent); font-weight:700; }
+  .muted { color: var(--muted); }
+  .footer { font-size:12px; color:#94a3b8; margin-top:10px; }
+  .pill { display:inline-block; padding:4px 10px; border-radius:999px; background: rgba(148,163,184,0.1); border:1px solid rgba(148,163,184,0.2); }
+  .flex { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .section-title { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+</style>
+</head>
+<body>
+  <div class="grid" style="max-width:1100px; margin:0 auto;">
+    <div class="section-title">
+      <h1>Income Engine: Growth Capital Model</h1>
+      <span class="tag">Interactive</span>
+    </div>
+    <div class="panel">
+      <p class="muted">Define your baseline and stream settings, then click <b>Recalculate</b>. All currency is in <b>IDR</b>.</p>
+      <div class="grid cols-3">
+        <div>
+          <label>Target Monthly Income</label>
+          <input id="targetMonthly" type="number" value="1500000000" min="0" step="1000000">
+        </div>
+        <div>
+          <label>Horizons (years, comma-separated)</label>
+          <input id="horizons" type="text" value="5,10,20,50">
+        </div>
+        <div>
+          <label>Inflation (optional, %/yr — used for real terms)</label>
+          <input id="inflation" type="number" value="0" step="0.5">
+        </div>
+      </div>
+    </div>
+    <!-- Baseline -->
+    <div class="grid cols-2">
+      <div class="panel">
+        <h2>Baseline: Active Income (Salary/Business)</h2>
+        <div class="grid cols-2">
+          <div>
+            <label>Initial Monthly Active Income</label>
+            <input id="salaryInitial" type="number" value="10000000" min="0" step="500000">
+          </div>
+          <div>
+            <label>Annual Active Growth (%)</label>
+            <input id="salaryGrowth" type="number" value="7" step="0.5">
+          </div>
+        </div>
+        <div class="grid cols-2" style="margin-top:10px;">
+          <div>
+            <label>Additional Active Streams (count)</label>
+            <input id="nActive" type="number" value="0" min="0" step="1">
+          </div>
+          <div>
+            <label>Per-Stream Initial Monthly Income</label>
+            <input id="perActiveStart" type="number" value="0" min="0" step="500000">
+          </div>
+        </div>
+        <div class="grid cols-2" style="margin-top:10px;">
+          <div>
+            <label>Per-Stream Annual Growth (%)</label>
+            <input id="perActiveGrowth" type="number" value="10" step="0.5">
+          </div>
+          <div>
+            <label>Cap Streams by Ops Margin? (0–100, optional)</label>
+            <input id="activeMarginCap" type="number" value="0" step="1">
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <h2>Baseline: Passive (Investments/Trading)</h2>
+        <div class="grid cols-2">
+          <div>
+            <label>Initial Capital</label>
+            <input id="initialCapital" type="number" value="23000000" min="0" step="1000000">
+          </div>
+          <div>
+            <label>Annual ROI (%)</label>
+            <input id="roi" type="number" value="12" step="0.5">
+          </div>
+        </div>
+        <div class="grid cols-2" style="margin-top:10px;">
+          <div>
+            <label>Additional Passive Streams (count)</label>
+            <input id="nPassive" type="number" value="0" min="0" step="1">
+          </div>
+          <div>
+            <label>Per-Stream Initial Capital</label>
+            <input id="perPassiveCap" type="number" value="0" min="0" step="1000000">
+          </div>
+        </div>
+        <div class="grid cols-2" style="margin-top:10px;">
+          <div>
+            <label>Per-Stream ROI (%)</label>
+            <input id="perPassiveRoi" type="number" value="15" step="0.5">
+          </div>
+          <div>
+            <label>Reinvest ROI? (1=yes, 0=no)</label>
+            <input id="reinvest" type="number" value="1" min="0" max="1" step="1">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="flex">
+        <button class="btn primary" onclick="recalc()">Recalculate</button>
+        <button class="btn secondary" onclick="loadDefaults()">Reset</button>
+        <span class="pill">Tip: tweak ROI, growth, and stream counts to explore scenarios.</span>
+      </div>
+      <div class="kpi" style="margin-top:14px;">
+        <div class="k"><div class="muted">Target Monthly Income</div><div class="v" id="kpiTarget">–</div></div>
+        <div class="k"><div class="muted">Best-Year Total Monthly</div><div class="v" id="kpiBest">–</div></div>
+        <div class="k"><div class="muted">Streams Suggested (50y)</div><div class="v" id="kpiStreams">–</div></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Projection Tables</h2>
+      <div id="tables"></div>
+      <div class="footer">Active = salary + additional active streams; Passive = investments + additional passive streams. Monthly income is shown in nominal terms; if you set Inflation, a real-terms row will appear.</div>
+    </div>
+
+    <div class="panel">
+      <h2>Optimization Helpers</h2>
+      <div class="grid cols-3">
+        <div>
+          <label>Solver Horizon (years)</label>
+          <input id="solverY" type="number" value="20" step="1">
+        </div>
+        <div>
+          <label>Use Which Solver</label>
+          <select id="solverType" style="width:100%; padding:10px 12px; border-radius:12px; border:1px solid rgba(148,163,184,0.2); background:#0b1220; color:var(--text);">
+            <option value="active">Required Per-Active Stream (start)</option>
+            <option value="passive">Required Per-Passive Stream Capital</option>
+            <option value="roi">Required ROI on Baseline Capital</option>
+          </select>
+        </div>
+        <div style="display:flex; align-items:flex-end;">
+          <button class="btn primary" onclick="solve()">Run Solver</button>
+        </div>
+      </div>
+      <div id="solverOut" style="margin-top:10px;"></div>
+    </div>
+
+    <div class="footer">
+      Built for Prof Danish • Change any input and press <b>Recalculate</b>. Save this file offline to use it anywhere.
+    </div>
+  </div>
+
+<script>
+function fmt(n){ return Number(n).toLocaleString('en-US', {maximumFractionDigits:0}); }
+function pct(n){ return Number(n).toLocaleString('en-US',{maximumFractionDigits:2})+'%'; }
+
+function readInputs(){
+  return {
+    targetMonthly: +document.getElementById('targetMonthly').value,
+    horizons: document.getElementById('horizons').value.split(',').map(s=>+s.trim()).filter(Boolean),
+    inflation: (+document.getElementById('inflation').value)/100,
+
+    salaryInitial: +document.getElementById('salaryInitial').value,
+    salaryGrowth: (+document.getElementById('salaryGrowth').value)/100,
+    nActive: +document.getElementById('nActive').value,
+    perActiveStart: +document.getElementById('perActiveStart').value,
+    perActiveGrowth: (+document.getElementById('perActiveGrowth').value)/100,
+    activeMarginCap: (+document.getElementById('activeMarginCap').value)/100,
+
+    initialCapital: +document.getElementById('initialCapital').value,
+    roi: (+document.getElementById('roi').value)/100,
+    nPassive: +document.getElementById('nPassive').value,
+    perPassiveCap: +document.getElementById('perPassiveCap').value,
+    perPassiveRoi: (+document.getElementById('perPassiveRoi').value)/100,
+    reinvest: +document.getElementById('reinvest').value
+  };
+}
+
+function activeIncomeAtYears(x, years){
+  // baseline salary/business
+  let base = x.salaryInitial * Math.pow(1 + x.salaryGrowth, years);
+  // additional active streams
+  let per = x.perActiveStart * Math.pow(1 + x.perActiveGrowth, years);
+  // optional ops margin cap
+  if (x.activeMarginCap > 0){
+    const capMult = Math.min(1, x.activeMarginCap);
+    base = base * (capMult>0?capMult:1);
+    per = per * (capMult>0?capMult:1);
+  }
+  let add = x.nActive * per;
+  return base + add;
+}
+
+function passiveMonthlyAtYears(x, years){
+  // baseline portfolio
+  let cap = x.initialCapital * Math.pow(1 + x.roi, years);
+  let monthly = cap * x.roi / 12;
+
+  // additional passive streams
+  let cap2 = x.perPassiveCap;
+  let r2 = x.perPassiveRoi;
+  let cap2Future;
+  if (x.reinvest === 1){
+    cap2Future = cap2 * Math.pow(1 + r2, years);
+  } else {
+    // no reinvest: only initial capital earns simple interest, distributed monthly
+    cap2Future = cap2;
+  }
+  let monthly2 = (x.nPassive) * (cap2Future * r2 / 12);
+  return monthly + monthly2;
+}
+
+function recalc(){
+  const x = readInputs();
+  document.getElementById('kpiTarget').textContent = 'IDR ' + fmt(x.targetMonthly);
+
+  const tablesDiv = document.getElementById('tables');
+  tablesDiv.innerHTML = '';
+
+  let bestMonthly = 0;
+  let bestYears = 0;
+  x.horizons.forEach(y=>{
+    const act = activeIncomeAtYears(x,y);
+    const pas = passiveMonthlyAtYears(x,y);
+    const total = act + pas;
+    if (total > bestMonthly){ bestMonthly = total; bestYears = y; }
+
+    const shortfall = x.targetMonthly - total;
+    const status = total >= x.targetMonthly ? `<span class="ok">Target met ✅</span>` :
+                     `<span class="warn">Gap: IDR ${fmt(shortfall)}</span>`;
+
+    const infl = x.inflation;
+    const realAdj = infl>0 ? Math.pow(1+infl, y) : 1;
+    const totalReal = total / realAdj;
+
+    const html = `
+      <div class="panel" style="margin-top:10px;">
+        <div class="section-title">
+          <h2>Horizon: ${y} years</h2>
+          <div>${status}</div>
+        </div>
+        <div class="kpi" style="margin:10px 0;">
+          <div class="k"><div class="muted">Active Monthly</div><div class="v">IDR ${fmt(act)}</div></div>
+          <div class="k"><div class="muted">Passive Monthly</div><div class="v">IDR ${fmt(pas)}</div></div>
+          <div class="k"><div class="muted">Total Monthly</div><div class="v">IDR ${fmt(total)}</div></div>
+          ${x.inflation>0 ? `<div class="k"><div class="muted">Total Monthly (Real)</div><div class="v">IDR ${fmt(totalReal)}</div></div>`:''}
+        </div>
+        <table>
+          <thead><tr><th>Component</th><th>Assumption</th><th>Value</th></tr></thead>
+          <tbody>
+            <tr><td style="text-align:left;">Baseline Active</td><td style="text-align:left;">Monthly × (1+g)^years</td><td>IDR ${fmt(x.salaryInitial)} × (1+${pct(x.salaryGrowth)})^${y} = <b>IDR ${fmt(x.salaryInitial * Math.pow(1+x.salaryGrowth,y))}</b></td></tr>
+            <tr><td style="text-align:left;">Additional Active</td><td style="text-align:left;">Count × Per-Stream Start × (1+g)^years</td><td>${x.nActive} × IDR ${fmt(x.perActiveStart)} × (1+${pct(x.perActiveGrowth)})^${y} = <b>IDR ${fmt(x.nActive * x.perActiveStart * Math.pow(1+x.perActiveGrowth,y))}</b></td></tr>
+            <tr><td style="text-align:left;">Baseline Passive</td><td style="text-align:left;">Capital × (1+ROI)^years × ROI/12</td><td>IDR ${fmt(x.initialCapital)} × (1+${pct(x.roi)})^${y} × ${pct(x.roi)}/12 = <b>IDR ${fmt((x.initialCapital*Math.pow(1+x.roi,y))*x.roi/12)}</b></td></tr>
+            <tr><td style="text-align:left;">Additional Passive</td><td style="text-align:left;">Count × Capital × (1+ROI)^years × ROI/12</td><td>${x.nPassive} × IDR ${fmt(x.perPassiveCap)} × (1+${pct(x.perPassiveRoi)})^${y} × ${pct(x.perPassiveRoi)}/12 = <b>IDR ${fmt(x.nPassive * (x.perPassiveCap*Math.pow(1+x.perPassiveRoi,y)) * x.perPassiveRoi/12)}</b></td></tr>
+          </tbody>
+        </table>
+      </div>`;
+    const c = document.createElement('div');
+    c.innerHTML = html;
+    tablesDiv.appendChild(c);
+  });
+
+  document.getElementById('kpiBest').textContent = `IDR ${fmt(bestMonthly)} (${bestYears}y)`;
+
+  // Suggest streams at 50y to hit target (rough heuristic using equal-per-stream active)
+  const y50 = Math.max(...x.horizons);
+  const current50 = activeIncomeAtYears(x,y50) + passiveMonthlyAtYears(x,y50);
+  let sugg = 0;
+  if (current50 < x.targetMonthly){
+    // assume each NEW active stream would start at same perActiveStart and growth perActiveGrowth
+    const perY50 = x.perActiveStart * Math.pow(1 + x.perActiveGrowth, y50);
+    if (perY50 > 0){
+      sugg = Math.ceil((x.targetMonthly - current50) / perY50);
+    } else {
+      sugg = 'n/a';
+    }
+  } else {
+    sugg = 0;
+  }
+  document.getElementById('kpiStreams').textContent = `${sugg}`;
+}
+
+function loadDefaults(){
+  document.getElementById('targetMonthly').value = 1500000000;
+  document.getElementById('horizons').value = '5,10,20,50';
+  document.getElementById('inflation').value = 0;
+  document.getElementById('salaryInitial').value = 10000000;
+  document.getElementById('salaryGrowth').value = 7;
+  document.getElementById('nActive').value = 0;
+  document.getElementById('perActiveStart').value = 0;
+  document.getElementById('perActiveGrowth').value = 10;
+  document.getElementById('activeMarginCap').value = 0;
+  document.getElementById('initialCapital').value = 23000000;
+  document.getElementById('roi').value = 12;
+  document.getElementById('nPassive').value = 0;
+  document.getElementById('perPassiveCap').value = 0;
+  document.getElementById('perPassiveRoi').value = 15;
+  document.getElementById('reinvest').value = 1;
+  recalc();
+}
+
+function solve(){
+  const x = readInputs();
+  const y = +document.getElementById('solverY').value;
+  const type = document.getElementById('solverType').value;
+  const current = activeIncomeAtYears(x,y) + passiveMonthlyAtYears(x,y);
+  const gap = x.targetMonthly - current;
+
+  let out = '';
+  if (gap <= 0){
+    out = `<div class="ok">At ${y} years you already meet the target. No extra requirement.</div>`;
+    document.getElementById('solverOut').innerHTML = out;
+    return;
+  }
+
+  if (type === 'active'){
+    // Required per-active-stream starting monthly income to cover the gap (with given growth)
+    const factor = Math.pow(1 + x.perActiveGrowth, y);
+    const reqPerStart = gap / (Math.max(1, x.nActive || 1) * factor);
+    out = `<div>Gap: <b>IDR ${fmt(gap)}</b>. With <b>${Math.max(1,x.nActive||1)}</b> active stream(s) and growth <b>${pct(x.perActiveGrowth)}</b>, you need each stream to start at <b>IDR ${fmt(reqPerStart)}</b>/mo today.</div>`;
+  } else if (type === 'passive'){
+    // Required per-passive-stream initial capital given ROI to cover the gap
+    const r = x.perPassiveRoi;
+    const capFactor = Math.pow(1 + r, y) * (r/12);
+    const reqCapPerStream = gap / (Math.max(1, x.nPassive || 1) * capFactor);
+    out = `<div>Gap: <b>IDR ${fmt(gap)}</b>. With <b>${Math.max(1,x.nPassive||1)}</b> passive stream(s) at ROI <b>${pct(r)}</b>, you need per-stream initial capital of <b>IDR ${fmt(reqCapPerStream)}</b> today${x.reinvest===1?' (reinvesting returns).':''}</div>`;
+  } else if (type === 'roi'){
+    // Required ROI on baseline capital to cover the gap (approx solve via binary search)
+    const cap = x.initialCapital;
+    let lo = 0.0001, hi = 2.0, r = null; // 0.01% to 200% annual
+    for (let i=0;i<80;i++){
+      const mid = (lo+hi)/2;
+      const monthly = (cap * Math.pow(1 + mid, y)) * (mid/12);
+      if (monthly >= gap) { r = mid; hi = mid; } else { lo = mid; }
+    }
+    if (r===null) r = hi;
+    out = `<div>Gap: <b>IDR ${fmt(gap)}</b>. If relying only on baseline capital <b>IDR ${fmt(x.initialCapital)}</b>, you would need an annual ROI of about <b>${pct(r)}</b> over ${y} years (with reinvestment) to close the gap.</div>`;
+  }
+  document.getElementById('solverOut').innerHTML = out;
+}
+
+window.addEventListener('load', recalc);
+</script>
+</body>
+</html>
